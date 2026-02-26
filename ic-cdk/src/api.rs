@@ -21,25 +21,6 @@
 use candid::Principal;
 use std::{convert::TryFrom, num::NonZeroU64};
 
-#[deprecated(
-    since = "0.18.0",
-    note = "The `api::call` module is deprecated. Individual items within this module have their own deprecation notices with specific migration guidance."
-)]
-#[doc(hidden)]
-pub mod call;
-#[deprecated(
-    since = "0.18.0",
-    note = "The `api::management_canister` module is deprecated. Please use the `management_canister` and `bitcoin_canister` modules at the crate root."
-)]
-#[doc(hidden)]
-pub mod management_canister;
-#[deprecated(
-    since = "0.18.0",
-    note = "The `api::stable` module has been moved to `stable` (crate root)."
-)]
-#[doc(hidden)]
-pub mod stable;
-
 /// Gets the message argument data.
 pub fn msg_arg_data() -> Vec<u8> {
     let len = ic0::msg_arg_data_size();
@@ -463,23 +444,12 @@ pub fn cost_call(method_name_size: u64, payload_size: u64) -> u128 {
     ic0::cost_call(method_name_size, payload_size)
 }
 
-/// Gets the cycle cost of the Management canister method [`creating_canister`](https://internetcomputer.org/docs/references/ic-interface-spec#ic-create_canister).
-///
-/// # Note
-///
-/// [`create_canister`](crate::management_canister::create_canister) and
-/// [`create_canister_with_extra_cycles`](crate::management_canister::create_canister_with_extra_cycles)
-/// invoke this function inside and attach the required cycles to the call.
+/// Gets the cycle cost of the Management canister method [`create_canister`](https://internetcomputer.org/docs/references/ic-interface-spec#ic-create_canister).
 pub fn cost_create_canister() -> u128 {
     ic0::cost_create_canister()
 }
 
 /// Gets the cycle cost of the Management canister method [`http_request`](https://internetcomputer.org/docs/references/ic-interface-spec#ic-http_request).
-///
-/// # Note
-///
-/// [`http_request`](crate::management_canister::http_request) and [`http_request_with_closure`](crate::management_canister::http_request_with_closure)
-/// invoke this function inside and attach the required cycles to the call.
 pub fn cost_http_request(request_size: u64, max_res_bytes: u64) -> u128 {
     ic0::cost_http_request(request_size, max_res_bytes)
 }
@@ -514,10 +484,6 @@ fn sign_cost_result(dst: u128, code: u32) -> Result<u128, SignCostError> {
 
 /// Gets the cycle cost of the Management canister method [`sign_with_ecdsa`](https://internetcomputer.org/docs/references/ic-interface-spec#ic-sign_with_ecdsa).
 ///
-/// # Note
-///
-/// Alternatively, [`management_canister::cost_sign_with_ecdsa`](crate::management_canister::cost_sign_with_ecdsa) provides a higher-level API that wraps this function.
-///
 /// # Errors
 ///
 /// This function will return an error if the `key_name` or the `ecdsa_curve` is invalid.
@@ -532,10 +498,6 @@ pub fn cost_sign_with_ecdsa<T: AsRef<str>>(
 }
 
 /// Gets the cycle cost of the Management canister method [`sign_with_schnorr`](https://internetcomputer.org/docs/references/ic-interface-spec#ic-sign_with_schnorr).
-///
-/// # Note
-///
-/// Alternatively, [`management_canister::cost_sign_with_schnorr`](crate::management_canister::cost_sign_with_schnorr) provides a higher-level API that wraps this function.
 ///
 /// # Errors
 ///
@@ -553,10 +515,6 @@ pub fn cost_sign_with_schnorr<T: AsRef<str>>(
 /// Gets the cycle cost of the Management canister method [`vetkd_derive_key`](https://github.com/dfinity/portal/pull/3763).
 ///
 /// Later, the description will be available in [the interface spec](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-vetkd_derive_key).
-///
-/// # Note
-///
-/// Alternatively, [`management_canister::cost_vetkd_derive_key`](crate::management_canister::cost_vetkd_derive_key) provides a higher-level API that wraps this function.
 ///
 /// # Errors
 ///
@@ -639,103 +597,4 @@ pub fn debug_print<T: AsRef<str>>(data: T) {
 pub fn trap<T: AsRef<str>>(data: T) -> ! {
     let buf = data.as_ref();
     ic0::trap(buf.as_bytes());
-}
-
-// # Deprecated API bindings
-//
-// The following functions are deprecated and will be removed in the future.
-// They are kept here for compatibility with existing code.
-
-/// Prints the given message.
-#[deprecated(since = "0.18.0", note = "Use `debug_print` instead")]
-#[doc(hidden)]
-pub fn print<S: std::convert::AsRef<str>>(s: S) {
-    let s = s.as_ref();
-    ic0::debug_print(s.as_bytes());
-}
-
-/// Returns the caller of the current call.
-#[deprecated(since = "0.18.0", note = "Use `msg_caller` instead")]
-#[doc(hidden)]
-pub fn caller() -> Principal {
-    let len = ic0::msg_caller_size();
-    let mut bytes = vec![0u8; len];
-    ic0::msg_caller_copy(&mut bytes, 0);
-    Principal::try_from(&bytes).unwrap()
-}
-
-/// Returns the canister id as a blob.
-#[deprecated(since = "0.18.0", note = "Use `canister_self` instead")]
-#[doc(hidden)]
-pub fn id() -> Principal {
-    let len = ic0::canister_self_size();
-    let mut bytes = vec![0u8; len];
-    ic0::canister_self_copy(&mut bytes, 0);
-    Principal::try_from(&bytes).unwrap()
-}
-
-/// Gets the amount of funds available in the canister.
-///
-/// # Panic
-///
-/// When the cycle balance is greater than `u64::MAX`, this function will panic.
-/// As this function is deprecated, it is recommended to use [`canister_cycle_balance`].
-#[deprecated(since = "0.18.0", note = "Use `canister_cycle_balance` instead")]
-#[doc(hidden)]
-pub fn canister_balance() -> u64 {
-    // ic0 no longer provides `ic0.canister_cycle_balance` which returns a u64,
-    // so we use the u128 version and convert it to u64.
-    // When the cycle balance is greater than `u64::MAX`, `ic0.canister_cycle_balance` also panics.
-    canister_cycle_balance()
-        .try_into()
-        .expect("the cycle balance is greater than u64::MAX, please use canister_cycle_balance which returns u128")
-}
-
-/// Gets the amount of funds available in the canister.
-#[deprecated(since = "0.18.0", note = "Use `canister_cycle_balance` instead")]
-#[doc(hidden)]
-pub fn canister_balance128() -> u128 {
-    canister_cycle_balance()
-}
-
-/// Sets the certified data of this canister.
-///
-/// Canisters can store up to 32 bytes of data that is certified by
-/// the system on a regular basis.  One can call [`data_certificate`]
-/// function from a query call to get a certificate authenticating the
-/// value set by calling this function.
-///
-/// This function can only be called from the following contexts:
-/// - `canister_init`, `canister_pre_upgrade` and `canister_post_upgrade`
-///   hooks.
-/// - `canister_update` calls.
-/// - reply or reject callbacks.
-///
-/// # Panics
-///
-/// - This function traps if `data.len() > 32`.
-/// - This function traps if it's called from an illegal context
-///   (e.g., from a query call).
-#[deprecated(since = "0.18.0", note = "Use `certified_data_set` instead")]
-#[doc(hidden)]
-pub fn set_certified_data(data: &[u8]) {
-    ic0::certified_data_set(data);
-}
-
-/// Sets global timer.
-///
-/// The canister can set a global timer to make the system
-/// schedule a call to the exported `canister_global_timer`
-/// Wasm method after the specified time.
-/// The time must be provided as nanoseconds since 1970-01-01.
-///
-/// The function returns the previous value of the timer.
-/// If no timer is set before invoking the function, then the function returns zero.
-///
-/// Passing zero as an argument to the function deactivates the timer and thus
-/// prevents the system from scheduling calls to the canister's `canister_global_timer` Wasm method.
-#[deprecated(since = "0.18.0", note = "Use `global_timer_set` instead")]
-#[doc(hidden)]
-pub fn set_global_timer(timestamp: u64) -> u64 {
-    ic0::global_timer_set(timestamp)
 }

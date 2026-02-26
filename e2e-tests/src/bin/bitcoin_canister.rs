@@ -1,16 +1,16 @@
-use ic_cdk::bitcoin_canister::*;
 use ic_cdk::call::Error;
 use ic_cdk::update;
+use ic_cdk_bitcoin_canister::*;
 
 /// A random Bitcoin address for testing.
 const BTC_ADDRESS: &str = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
 
 #[update]
-async fn execute_non_query_methods(network: Network) {
+async fn execute_non_query_methods(network: NetworkInRequest) {
     let arg = GetUtxosRequest {
         address: BTC_ADDRESS.to_string(),
         network,
-        filter: Some(UtxosFilter::MinConfirmations(1)),
+        filter: Some(UtxosFilterInRequest::MinConfirmations(1)),
     };
     let _response = bitcoin_get_utxos(&arg).await.unwrap();
 
